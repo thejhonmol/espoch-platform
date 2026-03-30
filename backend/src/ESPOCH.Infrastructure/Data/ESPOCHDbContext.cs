@@ -32,9 +32,9 @@ public class ESPOCHDbContext : DbContext
         {
             entity.ToTable("Usuarios");
             entity.HasKey(e => e.IdUsuario);
-            entity.Property(e => e.NombreCompleto).HasMaxLength(100).IsRequired();
-            entity.Property(e => e.CorreoInstitucional).HasMaxLength(150).IsRequired();
-            entity.Property(e => e.azureOid).HasMaxLength(100);
+            entity.Property(e => e.NombreCompleto).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.CorreoInstitucional).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.ContrasenaHash).HasMaxLength(500);
 
             entity.HasOne(e => e.IdRolNavigation)
                 .WithMany(r => r.Usuarios)
@@ -52,7 +52,6 @@ public class ESPOCHDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(e => e.CorreoInstitucional).IsUnique();
-            entity.HasIndex(e => e.azureOid);
         });
 
         modelBuilder.Entity<Ubicacion>(entity =>

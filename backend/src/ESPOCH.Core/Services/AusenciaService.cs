@@ -66,7 +66,7 @@ public class AusenciaService : IAusenciaService
         {
             Success = true,
             Message = "Solicitud de ausencia creada correctamente",
-            Ausencia = MapToDto(ausencia, usuario!)
+            Ausencia = MapToDto(ausencia, usuario!, null)
         };
     }
 

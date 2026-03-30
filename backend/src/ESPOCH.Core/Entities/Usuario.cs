@@ -26,6 +26,8 @@ public class Usuario
 
     public int? IdJefeDirecto { get; set; }
 
+    public int? IdHorario { get; set; }
+
     public bool Estado { get; set; } = true;
 
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
@@ -35,9 +37,13 @@ public class Usuario
     public virtual Rol? IdRolNavigation { get; set; }
 
     [ForeignKey("IdJefeDirecto")]
-    public virtual Usuario? JefeDirecto { get; set; }
+    public virtual Usuario? IdJefeDirectoNavigation { get; set; }
+
+    [ForeignKey("IdHorario")]
+    public virtual Horario? IdHorarioNavigation { get; set; }
 
     public virtual ICollection<Usuario> Colaboradores { get; set; } = new List<Usuario>();
     public virtual ICollection<Asistencia> Asistencias { get; set; } = new List<Asistencia>();
-    public virtual ICollection<Ausencia> Ausencias { get; set; } = new List<Ausencia>();
+    public virtual ICollection<Ausencia> AusenciasSolicitadas { get; set; } = new List<Ausencia>();
+    public virtual ICollection<Ausencia> AusenciasAprobadas { get; set; } = new List<Ausencia>();
 }
