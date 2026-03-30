@@ -1,16 +1,10 @@
 -- 01_CreateDatabase.sql
--- Script para crear la base de datos ESPOCH
+-- Script para crear la base de datos ESPOCH en PostgreSQL
 
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'ESPOCH')
-BEGIN
-    CREATE DATABASE ESPOCH;
-    PRINT 'Base de datos ESPOCH creada correctamente';
-END
-ELSE
-BEGIN
-    PRINT 'La base de datos ESPOCH ya existe';
-END
-GO
+-- Crear la base de datos (ejecutar como superusuario)
+-- CREATE DATABASE esp och;
 
-USE ESPOCH;
-GO
+-- Conectarse a la base de datos
+-- \c esp och;
+
+-- Crear las tablas

@@ -1,61 +1,73 @@
 # ESPOCH - Plataforma de Experiencia del Colaborador
 
-## 🚀 Despliegue en Railway
+## 🚀 Despliegue con Supabase (PostgreSQL)
 
 ### Prerrequisitos
 
-1. Cuenta en [Railway](https://railway.app) (registro con GitHub)
-2. Git instalado
+1. Cuenta en [Railway](https://railway.app) o [Supabase](https://supabase.com)
+2. Cuenta en [GitHub](https://github.com/thejhonmol/espoch-platform)
 3. .NET 8 SDK
 4. Node.js 18+
 
-### Paso 1: Desplegar desde GitHub
+---
 
-1. Ve a [Railway](https://railway.app)
-2. Click **New Project** → **Deploy from GitHub repo**
+## 📦 Paso 1: Crear Base de Datos en Supabase
+
+1. Ve a [supabase.com](https://supabase.com) y crea una cuenta
+2. Crea un nuevo proyecto:
+   - Name: `ESPOCH-DB`
+   - Password: Guarda esta contraseña
+   - Region: Selecciona la más cercana
+3. En el dashboard del proyecto, ve a **Settings** → **API**
+4. Copia la **Connection string** (格式: `postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres`)
+
+---
+
+## 📁 Paso 2: Ejecutar Scripts SQL en Supabase
+
+1. En Supabase, ve a **SQL Editor**
+2. Ejecuta los scripts en orden:
+   - `db/02_CreateTables.sql` 
+   - `db/04_SeedData.sql`
+
+---
+
+## 🚂 Paso 3: Desplegar Backend en Railway
+
+1. Ve a [railway.app](https://railway.app)
+2. Crea un nuevo proyecto: **New Project** → **Deploy from GitHub**
 3. Selecciona el repositorio `espoch-platform`
+4. Configura el **Root Directory** como `backend`
 
-### Paso 2: Crear Base de Datos
-
-Railway no ofrece SQL Server managed. Usa **PostgreSQL** y cambia el provider de EF Core.
-
-1. **New Service** → **Database** → **Add PostgreSQL**
-2. Anota la variable `DATABASE_URL`
-
-### Paso 3: Configurar Variables de Entorno
-
-#### Backend
+### Variables de Entorno en Railway:
 ```
-ConnectionStrings__DefaultConnection=<tu-postgres-url>
-Jwt__Key=<genera-una-clave-32-chars>
+ConnectionStrings__DefaultConnection=postgresql://postgres:[TU_PASSWORD]@db.[TU_REF].supabase.co:5432/postgres
+Jwt__Key=ESPOCH-Super-Secret-Key-That-Is-At-Least-32-Characters-Long
 Jwt__Issuer=ESPOCH-API
 Jwt__Audience=ESPOCH-FrontEnd
-FrontendUrl=<tu-url-de-railway>
+FrontendUrl=https://tu-frontend.railway.app
 ```
 
-#### Frontend
-```
-VITE_API_URL=https://tu-backend.up.railway.app/api
-```
+---
 
-### Paso 4: Ejecutar Scripts SQL
+## 🌐 Paso 4: Desplegar Frontend en Railway
 
-1. Conéctate a PostgreSQL desde Railway
-2. Ejecuta los scripts en orden:
-   - `db/01_CreateDatabase.sql`
-   - `db/02_CreateTables.sql`
-   - `db/04_SeedData.sql`
+1. Crea otro proyecto: **New Project** → **Deploy from GitHub**
+2. Selecciona el repositorio `espoch-platform`
+3. Configura el **Root Directory** como `frontend`
+
+### Variables de Entorno:
+```
+VITE_API_URL=https://tu-backend.railway.app/api
+```
 
 ---
 
 ## 🔐 Sistema de Autenticación
 
-**Ya NO usa Azure AD**. Ahora usa autenticación simple con JWT:
+**Login simple con email + contraseña (JWT)**
 
-- Login con **email + contraseña**
-- Tokens JWT con expiración de 8 horas
-
-### Credenciales de Prueba
+### Credenciales de Prueba (db/04_SeedData.sql):
 
 | Rol | Email | Contraseña |
 |-----|-------|------------|
@@ -65,40 +77,31 @@ VITE_API_URL=https://tu-backend.up.railway.app/api
 
 ---
 
-## 📋 Endpoints API
+## 📡 Endpoints API
 
-### Autenticación
-
+### Login
 ```bash
-# Login
 curl -X POST "http://localhost:5000/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@espoch.edu.ec","password":"admin123"}'
-
-# Obtener usuario actual
-curl -X GET "http://localhost:5000/api/auth/me" \
-  -H "Authorization: Bearer TU_JWT_TOKEN"
 ```
 
 ### Marcar Asistencia
-
 ```bash
 curl -X POST "http://localhost:5000/api/asistencia/marcar" \
   -H "Authorization: Bearer TU_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "tipo": "Ingreso",
-    "latitud": -1.286389,
-    "longitud": -78.586666,
+    "latitud": -0.180653,
+    "longitud": -78.467834,
     "modalidad": "Presencial",
     "idUbicacion": 1
   }'
 ```
 
-### Ausencias
-
+### Crear Ausencia
 ```bash
-# Crear ausencia
 curl -X POST "http://localhost:5000/api/ausencias" \
   -H "Authorization: Bearer TU_JWT_TOKEN" \
   -H "Content-Type: application/json" \
@@ -109,12 +112,15 @@ curl -X POST "http://localhost:5000/api/ausencias" \
     "motivo": "Cita médica",
     "tipoAusencia": "Médica"
   }'
+```
 
-# Aprobar ausencia (Jefe/Admin)
+### Aprobar/Rechazar Ausencia
+```bash
+# Aprobar
 curl -X PUT "http://localhost:5000/api/ausencias/1/aprobar" \
   -H "Authorization: Bearer TU_JWT_TOKEN"
 
-# Rechazar ausencia (Jefe/Admin)
+# Rechazar
 curl -X PUT "http://localhost:5000/api/ausencias/1/rechazar" \
   -H "Authorization: Bearer TU_JWT_TOKEN" \
   -H "Content-Type: application/json" \
@@ -131,28 +137,27 @@ hackaton-espoch/
 │   └── src/
 │       ├── ESPOCH.API/         # Controllers, Program.cs
 │       ├── ESPOCH.Core/        # Entities, DTOs, Services
-│       └── ESPOCH.Infrastructure/  # EF Core, Repositories
+│       └── ESPOCH.Infrastructure/  # EF Core (PostgreSQL), Repositories
 ├── frontend/                   # React 18+ + Vite
 │   └── src/
-│       ├── pages/              # Componentes de página
+│       ├── pages/              # Login, Dashboard, Ausencias, etc.
 │       ├── services/           # API services
 │       └── store/              # Zustand state
-├── db/                         # Scripts SQL
-├── railway/                    # Docker Compose
-└── docs/                       # Documentación API
+├── db/                         # Scripts PostgreSQL
+└── railway/                    # Docker Compose (opcional)
 ```
 
 ---
 
-## 🏛️ Reglas de Negocio Implementadas
+## 🏛️ Reglas de Negocio
 
-1. **Haversine (>100m)**: [`GeolocationService.cs`](backend/src/ESPOCH.Core/Services/GeolocationService.cs) - Rechaza marcación si distancia > 100m
-2. **Límite 6h/día**: [`AusenciaService.cs`](backend/src/ESPOCH.Core/Services/AusenciaService.cs) - Máximo 6 horas de ausencia por día
-3. **Roles**: Admin, JefeDirecto, Colaborador con políticas de autorización
+1. **Haversine (>100m)**: Rechaza marcación si distancia > 100 metros
+2. **Límite 6h/día**: Máximo 6 horas de ausencia por día por colaborador
+3. **Roles**: Admin (todo), JefeDirecto (sus colaboradores), Colaborador (básico)
 
 ---
 
-## ⚙️ Configuración Local
+## ⚙️ Desarrollo Local
 
 ### Backend
 ```bash
@@ -169,8 +174,12 @@ npm run dev
 
 ---
 
-## 📝 Notas
+## ⚠️ Notas Importantes
 
-- La geolocalización requiere **HTTPS** o **localhost** para funcionar
-- En producción, usar **BCrypt** para hashear contraseñas (actualmente en texto plano para demo)
-- Railway no tiene SQL Server; usar PostgreSQL y cambiar provider de EF Core
+1. **Geolocalización**: Requiere HTTPS o localhost para funcionar
+2. **Contraseñas**: Actualmente en texto plano (para producción usar BCrypt)
+3. **Supabase Connection String**: Formato correcto:
+   ```
+   postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+   ```
+4. **Railway**: Backend y Frontend se despliegan como proyectos SEPARADOS
