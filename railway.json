@@ -9,11 +9,18 @@
           "nixChannel": "nixos-23_11"
         },
         "install": {
-          "commands": ["dotnet restore"]
+          "commands": [
+            "cd backend && dotnet restore"
+          ]
         },
         "build": {
-          "commands": ["dotnet build -c Release"]
+          "commands": [
+            "cd backend && dotnet publish -c Release -o /app/publish"
+          ]
         }
+      },
+      "start": {
+        "command": "cd /app/publish && dotnet ESPOCH.API.dll"
       }
     }
   },
