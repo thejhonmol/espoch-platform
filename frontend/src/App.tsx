@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Login from './pages/Login';
-import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import MarcarAsistencia from './pages/MarcarAsistencia';
 import MisAusencias from './pages/MisAusencias';
@@ -25,7 +24,6 @@ function App() {
     <div className="app">
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
         
         <Route
           path="/"

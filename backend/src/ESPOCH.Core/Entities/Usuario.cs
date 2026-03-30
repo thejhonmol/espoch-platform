@@ -1,23 +1,43 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ESPOCH.Core.Entities;
 
+[Table("Usuarios")]
 public class Usuario
 {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int IdUsuario { get; set; }
+
+    [Required]
+    [MaxLength(200)]
     public string NombreCompleto { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(200)]
     public string CorreoInstitucional { get; set; } = string.Empty;
-    public string? azureOid { get; set; }
+
+    [MaxLength(500)]
+    public string? ContrasenaHash { get; set; }
+
+    [Required]
     public int IdRol { get; set; }
+
     public int? IdJefeDirecto { get; set; }
-    public int? IdHorario { get; set; }
+
     public bool Estado { get; set; } = true;
+
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
-    
-    public Rol IdRolNavigation { get; set; } = null!;
-    public Usuario? IdJefeDirectoNavigation { get; set; }
-    public Horario? IdHorarioNavigation { get; set; }
-    
-    public ICollection<Usuario> Colaboradores { get; set; } = new List<Usuario>();
-    public ICollection<Asistencia> Asistencias { get; set; } = new List<Asistencia>();
-    public ICollection<Ausencia> AusenciasSolicitadas { get; set; } = new List<Ausencia>();
-    public ICollection<Ausencia> AusenciasAprobadas { get; set; } = new List<Ausencia>();
+
+    // Navigation properties
+    [ForeignKey("IdRol")]
+    public virtual Rol? IdRolNavigation { get; set; }
+
+    [ForeignKey("IdJefeDirecto")]
+    public virtual Usuario? JefeDirecto { get; set; }
+
+    public virtual ICollection<Usuario> Colaboradores { get; set; } = new List<Usuario>();
+    public virtual ICollection<Asistencia> Asistencias { get; set; } = new List<Asistencia>();
+    public virtual ICollection<Ausencia> Ausencias { get; set; } = new List<Ausencia>();
 }

@@ -1,10 +1,6 @@
-export interface Usuario {
-  idUsuario: number;
-  nombreCompleto: string;
-  correoInstitucional: string;
-  rol: string;
-  idRol: number;
-  azureOid?: string;
+export interface LoginRequest {
+  email: string;
+  password: string;
 }
 
 export interface TokenResponse {
@@ -13,23 +9,34 @@ export interface TokenResponse {
   usuario: Usuario;
 }
 
+export interface Usuario {
+  idUsuario: number;
+  nombreCompleto: string;
+  correoInstitucional: string;
+  rol: string;
+  idRol: number;
+}
+
 export interface Asistencia {
   idAsistencia: number;
   idUsuario: number;
-  nombreUsuario: string;
-  fechaHoraIngreso?: string;
+  fechaHoraIngreso: string;
   fechaHoraSalida?: string;
   modalidad: string;
   idUbicacion: number;
-  ubicacion: string;
+  latIngreso: number;
+  lonIngreso: number;
   estadoPuntualidad: string;
+  nombreUsuario?: string;
+  nombreUbicacion?: string;
 }
 
 export interface MarcarRequest {
+  tipo: 'Ingreso' | 'Salida';
   latitud: number;
   longitud: number;
-  idUbicacion: number;
   modalidad: string;
+  idUbicacion?: number;
 }
 
 export interface MarcarSalidaRequest {
@@ -41,12 +48,12 @@ export interface MarcarResponse {
   success: boolean;
   message: string;
   asistencia?: Asistencia;
+  distancia?: number;
 }
 
 export interface Ausencia {
   idAusencia: number;
   idUsuario: number;
-  nombreUsuario: string;
   fechaSolicitud: string;
   fechaAusencia: string;
   horarioInicio: string;
@@ -58,7 +65,7 @@ export interface Ausencia {
   idAprobador?: number;
   nombreAprobador?: string;
   motivoRechazo?: string;
-  fechaAprobacion?: string;
+  nombreUsuario?: string;
 }
 
 export interface CrearAusenciaRequest {
@@ -73,6 +80,8 @@ export interface AusenciaResponse {
   success: boolean;
   message: string;
   ausencia?: Ausencia;
+  horasUsadas?: number;
+  horasDisponibles?: number;
 }
 
 export interface Ubicacion {
@@ -91,8 +100,4 @@ export interface Horario {
   horarioInicio: string;
   horarioFin: string;
   estado: boolean;
-}
-
-export interface ApiError {
-  message: string;
 }

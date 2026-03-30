@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { asistenciaService, adminService } from '../services/api';
-import type { Ubicacion, MarcarRequest, MarcarSalidaRequest } from '../types';
+import type { Ubicacion, MarcarRequest } from '../types';
 
 function MarcarAsistencia() {
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
@@ -53,6 +53,7 @@ function MarcarAsistencia() {
     setLoading(true);
     try {
       const data: MarcarRequest = {
+        tipo: 'Ingreso',
         latitud: currentPosition.lat,
         longitud: currentPosition.lon,
         idUbicacion: selectedUbicacion,
@@ -60,7 +61,7 @@ function MarcarAsistencia() {
       };
       const response = await asistenciaService.marcar(data);
       setMessage({ type: 'success', text: response.message });
-    } catch (error: any) {
+    } catch (error as any) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Error al marcar' });
     } finally {
       setLoading(false);

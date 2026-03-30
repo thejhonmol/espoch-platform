@@ -1,5 +1,26 @@
 namespace ESPOCH.Core.DTOs;
 
+public class LoginRequestDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class RegisterRequestDto
+{
+    public string NombreCompleto { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public int IdRol { get; set; }
+    public int? IdJefeDirecto { get; set; }
+}
+
+public class ChangePasswordDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 public class TokenRequestDto
 {
     public string Code { get; set; } = string.Empty;

@@ -28,80 +28,47 @@ public class AuthController : ControllerBase
         _configuration = configuration;
     }
 
-    [HttpPost("token")]
-    public async Task<IActionResult> Token([FromBody] TokenRequestDto request)
+    /// <summary>
+    /// Iniciar sesión con credenciales (email y contraseña)
+    /// </summary>
+    [HttpPost("login")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
         try
         {
-            var httpClient = new HttpClient();
-            var tenantId = _configuration["AzureAd:TenantId"];
-            var clientId = _configuration["AzureAd:ClientId"];
-            var clientSecret = _configuration["AzureAd:ClientSecret"];
-
-            var tokenEndpoint = $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token";
-
-            var tokenRequest = new Dictionary<string, string>
+            if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
             {
-                { "grant_type", "authorization_code" },
-                { "client_id", clientId },
-                { "client_secret", clientSecret },
-                { "code", request.Code },
-                { "redirect_uri", request.RedirectUri }
-            };
-
-            var tokenResponse = await httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(tokenRequest));
-            
-            if (!tokenResponse.IsSuccessStatusCode)
-            {
-                return BadRequest(new { message = "Error obtaining token from Azure AD" });
+                return BadRequest(new { message = "Email y contraseña son requeridos" });
             }
 
-            var tokenContent = await tokenResponse.Content.ReadFromJsonAsync<AzureAdTokenResponse>();
-            
-            if (tokenContent == null)
-            {
-                return BadRequest(new { message = "Invalid token response" });
-            }
-
-            var handler = new JwtSecurityTokenHandler();
-            var idToken = handler.ReadJwtToken(tokenContent.Id_token);
-            
-            var email = idToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value;
-            var name = idToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
-            var azureOid = idToken.Claims.FirstOrDefault(c => c.Type == "oid")?.Value;
-
-            if (string.IsNullOrEmpty(email))
-            {
-                return BadRequest(new { message = "Email not found in token" });
-            }
-
-            var usuario = await _usuarioRepository.GetByEmailAsync(email);
+            var usuario = await _usuarioRepository.GetByEmailAsync(request.Email);
             
             if (usuario == null)
             {
-                var rolColaborador = await _rolRepository.GetByIdAsync(3);
-                
-                usuario = new Usuario
-                {
-                    NombreCompleto = name ?? email,
-                    CorreoInstitucional = email,
-                    azureOid = azureOid,
-                    IdRol = rolColaborador?.IdRol ?? 3,
-                    Estado = true,
-                    FechaCreacion = DateTime.UtcNow
-                };
-                
-                await _usuarioRepository.AddAsync(usuario);
+                return Unauthorized(new { message = "Credenciales inválidas" });
             }
-            else
+
+            // Verificar estado del usuario
+            if (!usuario.Estado)
             {
-                usuario.azureOid = azureOid;
-                await _usuarioRepository.UpdateAsync(usuario);
+                return Unauthorized(new { message = "Usuario inactivo" });
             }
 
-            usuario = await _usuarioRepository.GetByIdAsync(usuario.IdUsuario);
+            // Verificar contraseña (en producción usar BCrypt o similar)
+            // Por ahora comparamos directamente - cambiar en producción
+            if (usuario.ContrasenaHash != request.Password)
+            {
+                return Unauthorized(new { message = "Credenciales inválidas" });
+            }
 
-            var jwtToken = GenerateJwtToken(usuario!);
+            // Cargar el rol si no está cargado
+            if (usuario.IdRolNavigation == null)
+            {
+                usuario.IdRolNavigation = await _rolRepository.GetByIdAsync(usuario.IdRol);
+            }
+
+            var jwtToken = GenerateJwtToken(usuario);
             var expiration = DateTime.UtcNow.AddHours(8);
 
             return Ok(new TokenResponseDto
@@ -113,18 +80,62 @@ public class AuthController : ControllerBase
                     IdUsuario = usuario.IdUsuario,
                     NombreCompleto = usuario.NombreCompleto,
                     CorreoInstitucional = usuario.CorreoInstitucional,
-                    Rol = usuario.IdRolNavigation.NombreRol,
-                    IdRol = usuario.IdRol,
-                    AzureOid = usuario.azureOid
+                    Rol = usuario.IdRolNavigation?.NombreRol ?? "SinRol",
+                    IdRol = usuario.IdRol
                 }
             });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = $"Error processing authentication: {ex.Message}" });
+            return StatusCode(500, new { message = $"Error en autenticación: {ex.Message}" });
         }
     }
 
+    /// <summary>
+    /// Registrar un nuevo usuario (solo Admin puede crear usuarios)
+    /// </summary>
+    [HttpPost("register")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
+    {
+        try
+        {
+            var existingUser = await _usuarioRepository.GetByEmailAsync(request.Email);
+            if (existingUser != null)
+            {
+                return BadRequest(new { message = "El email ya está registrado" });
+            }
+
+            var rol = await _rolRepository.GetByIdAsync(request.IdRol);
+            if (rol == null)
+            {
+                return BadRequest(new { message = "Rol inválido" });
+            }
+
+            var usuario = new Usuario
+            {
+                NombreCompleto = request.NombreCompleto,
+                CorreoInstitucional = request.Email,
+                ContrasenaHash = request.Password, // En producción usar BCrypt
+                IdRol = request.IdRol,
+                IdJefeDirecto = request.IdJefeDirecto,
+                Estado = true,
+                FechaCreacion = DateTime.UtcNow
+            };
+
+            await _usuarioRepository.AddAsync(usuario);
+
+            return Ok(new { message = "Usuario creado exitosamente", usuarioId = usuario.IdUsuario });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Error al crear usuario: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
+    /// Obtener usuario actual
+    /// </summary>
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
@@ -148,10 +159,42 @@ public class AuthController : ControllerBase
             IdUsuario = usuario.IdUsuario,
             NombreCompleto = usuario.NombreCompleto,
             CorreoInstitucional = usuario.CorreoInstitucional,
-            Rol = usuario.IdRolNavigation.NombreRol,
-            IdRol = usuario.IdRol,
-            AzureOid = usuario.azureOid
+            Rol = usuario.IdRolNavigation?.NombreRol ?? "SinRol",
+            IdRol = usuario.IdRol
         });
+    }
+
+    /// <summary>
+    /// Cambiar contraseña
+    /// </summary>
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var usuario = await _usuarioRepository.GetByIdAsync(userId);
+        
+        if (usuario == null)
+        {
+            return NotFound();
+        }
+
+        // Verificar contraseña actual
+        if (usuario.ContrasenaHash != request.CurrentPassword)
+        {
+            return BadRequest(new { message = "Contraseña actual incorrecta" });
+        }
+
+        usuario.ContrasenaHash = request.NewPassword;
+        await _usuarioRepository.UpdateAsync(usuario);
+
+        return Ok(new { message = "Contraseña cambiada exitosamente" });
     }
 
     private string GenerateJwtToken(Usuario usuario)
@@ -164,7 +207,7 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
             new Claim(ClaimTypes.Email, usuario.CorreoInstitucional),
             new Claim(ClaimTypes.Name, usuario.NombreCompleto),
-            new Claim(ClaimTypes.Role, usuario.IdRolNavigation.NombreRol)
+            new Claim(ClaimTypes.Role, usuario.IdRolNavigation?.NombreRol ?? "Colaborador")
         };
 
         var token = new JwtSecurityToken(
@@ -176,11 +219,5 @@ public class AuthController : ControllerBase
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private class AzureAdTokenResponse
-    {
-        public string Access_Token { get; set; } = string.Empty;
-        public string Id_Token { get; set; } = string.Empty;
     }
 }

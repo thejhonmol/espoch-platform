@@ -12,6 +12,7 @@ import type {
   AusenciaResponse,
   Ubicacion,
   Horario,
+  LoginRequest,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -43,8 +44,13 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  token: async (code: string, redirectUri: string): Promise<TokenResponse> => {
-    const response = await api.post<TokenResponse>('/auth/token', { code, redirectUri });
+  login: async (credentials: LoginRequest): Promise<TokenResponse> => {
+    const response = await api.post<TokenResponse>('/auth/login', credentials);
+    return response.data;
+  },
+
+  register: async (data: any): Promise<any> => {
+    const response = await api.post('/auth/register', data);
     return response.data;
   },
 

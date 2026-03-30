@@ -4,6 +4,14 @@
 USE ESPOCH;
 GO
 
+-- Agregar columna ContrasenaHash si no existe
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Usuarios') AND name = 'ContrasenaHash')
+BEGIN
+    ALTER TABLE Usuarios ADD ContrasenaHash NVARCHAR(500) NULL;
+    PRINT 'Columna ContrasenaHash agregada';
+END
+GO
+
 -- Insertar Roles
 IF NOT EXISTS (SELECT * FROM Roles)
 BEGIN
@@ -37,39 +45,39 @@ BEGIN
 END
 GO
 
--- Insertar Usuarios de prueba
+-- Insertar Usuarios de prueba (CON CONTRASEÑAS)
 IF NOT EXISTS (SELECT * FROM Usuarios WHERE CorreoInstitucional = 'admin@espoch.edu.ec')
 BEGIN
-    DECLARE @idHorario INT = (SELECT IdHorario FROM Horarios WHERE NombreHorario = 'Continuo');
+    DECLARE @idHorario1 INT = (SELECT IdHorario FROM Horarios WHERE NombreHorario = 'Continuo');
     
-    INSERT INTO Usuarios (NombreCompleto, CorreoInstitucional, IdRol, IdHorario, Estado, FechaCreacion) VALUES
-    ('Administrador Sistema', 'admin@espoch.edu.ec', 1, @idHorario, 1, GETUTCDATE());
+    INSERT INTO Usuarios (NombreCompleto, CorreoInstitucional, ContrasenaHash, IdRol, IdHorario, Estado, FechaCreacion) VALUES
+    ('Administrador Sistema', 'admin@espoch.edu.ec', 'admin123', 1, @idHorario1, 1, GETUTCDATE());
     
-    PRINT 'Usuario admin insertado correctamente';
+    PRINT 'Usuario admin insertado correctamente (email: admin@espoch.edu.ec, pass: admin123)';
 END
 GO
 
 IF NOT EXISTS (SELECT * FROM Usuarios WHERE CorreoInstitucional = 'jefe.departamento@espoch.edu.ec')
 BEGIN
     DECLARE @idJefeAdmin INT = (SELECT IdUsuario FROM Usuarios WHERE CorreoInstitucional = 'admin@espoch.edu.ec');
-    DECLARE @idHorario INT = (SELECT IdHorario FROM Horarios WHERE NombreHorario = 'Matutino');
+    DECLARE @idHorario2 INT = (SELECT IdHorario FROM Horarios WHERE NombreHorario = 'Matutino');
     
-    INSERT INTO Usuarios (NombreCompleto, CorreoInstitucional, IdRol, IdJefeDirecto, IdHorario, Estado, FechaCreacion) VALUES
-    ('Juan Pérez López', 'jefe.departamento@espoch.edu.ec', 2, @idJefeAdmin, @idHorario, 1, GETUTCDATE());
+    INSERT INTO Usuarios (NombreCompleto, CorreoInstitucional, ContrasenaHash, IdRol, IdJefeDirecto, IdHorario, Estado, FechaCreacion) VALUES
+    ('Juan Pérez López', 'jefe.departamento@espoch.edu.ec', 'jefe123', 2, @idJefeAdmin, @idHorario2, 1, GETUTCDATE());
     
-    PRINT 'Usuario jefe directo insertado correctamente';
+    PRINT 'Usuario jefe directo insertado correctamente (email: jefe.departamento@espoch.edu.ec, pass: jefe123)';
 END
 GO
 
 IF NOT EXISTS (SELECT * FROM Usuarios WHERE CorreoInstitucional = 'colaborador@espoch.edu.ec')
 BEGIN
     DECLARE @idJefe INT = (SELECT IdUsuario FROM Usuarios WHERE CorreoInstitucional = 'jefe.departamento@espoch.edu.ec');
-    DECLARE @idHorario INT = (SELECT IdHorario FROM Horarios WHERE NombreHorario = 'Matutino');
+    DECLARE @idHorario3 INT = (SELECT IdHorario FROM Horarios WHERE NombreHorario = 'Matutino');
     
-    INSERT INTO Usuarios (NombreCompleto, CorreoInstitucional, IdRol, IdJefeDirecto, IdHorario, Estado, FechaCreacion) VALUES
-    ('María García Rodríguez', 'colaborador@espoch.edu.ec', 3, @idJefe, @idHorario, 1, GETUTCDATE());
+    INSERT INTO Usuarios (NombreCompleto, CorreoInstitucional, ContrasenaHash, IdRol, IdJefeDirecto, IdHorario, Estado, FechaCreacion) VALUES
+    ('María García Rodríguez', 'colaborador@espoch.edu.ec', 'colab123', 3, @idJefe, @idHorario3, 1, GETUTCDATE());
     
-    PRINT 'Usuario colaborador insertado correctamente';
+    PRINT 'Usuario colaborador insertado correctamente (email: colaborador@espoch.edu.ec, pass: colab123)';
 END
 GO
 
@@ -79,9 +87,9 @@ BEGIN
     DECLARE @idUsuario INT = (SELECT IdUsuario FROM Usuarios WHERE CorreoInstitucional = 'colaborador@espoch.edu.ec');
     DECLARE @idUbicacion INT = (SELECT IdUbicacion FROM Ubicaciones WHERE CodigoUbicacion = 'SEDE-001');
     
-    INSERT INTO Asistencias (IdUsuario, FechaHoraIngreso, Modalidad, IdUbicacion, LatIngreso, LonIngreso, EstadoPuntualidad, FechaCreacion) VALUES
-    (@idUsuario, DATEADD(DAY, -1, GETUTCDATE()), 'Presencial', @idUbicacion, -0.180653, -78.467834, 'Presente', GETUTCDATE()),
-    (@idUsuario, DATEADD(DAY, -2, GETUTCDATE()), 'Presencial', @idUbicacion, -0.180653, -78.467834, 'Tardanza', GETUTCDATE());
+    INSERT INTO Asistencias (IdUsuario, FechaHoraIngreso, Modalidad, IdUbicacion, LatIngreso, LonIngreso, EstadoPuntualidad) VALUES
+    (@idUsuario, DATEADD(DAY, -1, GETUTCDATE()), 'Presencial', @idUbicacion, -0.180653, -78.467834, 'Presente'),
+    (@idUsuario, DATEADD(DAY, -2, GETUTCDATE()), 'Presencial', @idUbicacion, -0.180653, -78.467834, 'Tardanza');
     
     PRINT 'Asistencias de prueba insertadas correctamente';
 END
@@ -93,13 +101,17 @@ BEGIN
     DECLARE @idUsuario INT = (SELECT IdUsuario FROM Usuarios WHERE CorreoInstitucional = 'colaborador@espoch.edu.ec');
     DECLARE @idJefe INT = (SELECT IdUsuario FROM Usuarios WHERE CorreoInstitucional = 'jefe.departamento@espoch.edu.ec');
     
-    INSERT INTO Ausencias (IdUsuario, FechaSolicitud, FechaAusencia, HorarioInicio, HorarioFin, TotalHoras, Motivo, TipoAusencia, EstadoAprobacion, IdAprobador, FechaAprobacion) VALUES
-    (@idUsuario, DATEADD(DAY, -5, GETUTCDATE()), DATEADD(DAY, 3, GETUTCDATE()), '08:00:00', '12:00:00', 4.00, 'Cita médica', 'Médica', 'Aprobada', @idJefe, DATEADD(DAY, -4, GETUTCDATE())),
-    (@idUsuario, GETUTCDATE(), DATEADD(DAY, 7, GETUTCDATE()), '14:00:00', '18:00:00', 4.00, 'Trámite personal', 'Personal', 'Pendiente', NULL, NULL);
+    INSERT INTO Ausencias (IdUsuario, FechaSolicitud, FechaAusencia, HorarioInicio, HorarioFin, TotalHoras, Motivo, TipoAusencia, EstadoAprobacion, IdAprobador) VALUES
+    (@idUsuario, DATEADD(DAY, -5, GETUTCDATE()), DATEADD(DAY, 3, GETUTCDATE()), '08:00:00', '12:00:00', 4.00, 'Cita médica', 'Médica', 'Aprobada', @idJefe),
+    (@idUsuario, GETUTCDATE(), DATEADD(DAY, 7, GETUTCDATE()), '14:00:00', '18:00:00', 4.00, 'Trámite personal', 'Personal', 'Pendiente', NULL);
     
     PRINT 'Ausencias de prueba insertadas correctamente';
 END
 GO
 
-PRINT 'Datos iniciales insertados correctamente';
+PRINT '=== DATOS DE PRUEBA ===';
+PRINT 'Admin: admin@espoch.edu.ec / admin123';
+PRINT 'Jefe: jefe.departamento@espoch.edu.ec / jefe123';
+PRINT 'Colaborador: colaborador@espoch.edu.ec / colab123';
+PRINT '========================';
 GO
