@@ -41,5 +41,4 @@ public class UsuarioDto
     public string CorreoInstitucional { get; set; } = string.Empty;
     public string Rol { get; set; } = string.Empty;
     public int IdRol { get; set; }
-    public string? AzureOid { get; set; }
 }

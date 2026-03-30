@@ -40,14 +40,6 @@ public class UsuarioRepository : IUsuarioRepository
             .FirstOrDefaultAsync(u => u.CorreoInstitucional == correoInstitucional);
     }
 
-    public async Task<Usuario?> GetByAzureOidAsync(string azureOid)
-    {
-        return await _context.Usuarios
-            .Include(u => u.IdRolNavigation)
-            .Include(u => u.IdHorarioNavigation)
-            .FirstOrDefaultAsync(u => u.azureOid == azureOid);
-    }
-
     public async Task<IEnumerable<Usuario>> GetByJefeDirectoAsync(int idJefe)
     {
         return await _context.Usuarios
