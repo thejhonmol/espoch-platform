@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: esp och_sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - esp och_network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourPassword123! -Q "SELECT 1"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: es pochtch_backend
+    ports:
+      - "5000:80"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=ESPOCH;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True
+      - AzureAd__ClientId=${AZURE_CLIENT_ID}
+      - AzureAd__TenantId=${AZURE_TENANT_ID}
+      - Jwt__Key=${JWT_SECRET_KEY}
+      - Jwt__Issuer=ESPOCH-API
+      - Jwt__Audience=ESPOCH-FrontEnd
+      - FrontendUrl=${FRONTEND_URL}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - esp och_network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: es pochtch_frontend
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+      - VITE_AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - VITE_AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - VITE_REDIRECT_URI=${FRONTEND_URL}/auth/callback
+    depends_on:
+      - backend
+    networks:
+      - esp och_network
+
+volumes:
+  sqlserver_data:
+
+networks:
+  es pochtch_network:
+    driver: bridge
