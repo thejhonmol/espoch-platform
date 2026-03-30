@@ -121,11 +121,18 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure database is created and seeded
-using (var scope = app.Services.CreateScope())
+// Ensure database is created (graceful - won't crash if DB unavailable)
+try
 {
+    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ESPOCHDbContext>();
     dbContext.Database.EnsureCreated();
+    Console.WriteLine("Database connection successful and schema ensured.");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"WARNING: Could not connect to database: {ex.Message}");
+    Console.WriteLine("The app will start but database operations will fail until a valid connection string is configured.");
 }
 
 app.Run();
